@@ -1,10 +1,10 @@
 import telepot
 import time
 import re
+from bs4 import BeautifulSoup
 from random import randint
-from telepot.loop import MessageLoop
 from urllib.request import urlopen
-
+from telepot.loop import MessageLoop
 
 TOKEN = ""
 bot = telepot.Bot(TOKEN)
@@ -13,7 +13,6 @@ chat_id = ""
 def MessageHandle(msg):
     content_type, chat_type, chat_id = telepot.glance(msg)
     if content_type == "text":
-#        print(msg)
         if msg["text"] == "/ip":
             try:
                 bot.sendMessage(chat_id, "Current IP: " + urlopen("http://ip.42.pl/raw").read().decode("utf-8"))
@@ -22,16 +21,10 @@ def MessageHandle(msg):
             except:
                 pass
         elif msg["text"] == "/miete":
-            subjects = ['Yleinen', 'Tietotekniikka', 'Politiikka', 'Talous', 'Yritysmaailma', 'Oikeustiede', 'Opiskelijaelama', 'Monikulttuurisuus', 'Tulevaisuusselonteko']
+            options = BeautifulSoup(urlopen('http://puppulausegeneraattori.fi/'), 'html.parser').findAll('option')
             try:
-                response = urlopen('http://puppulausegeneraattori.fi/aihe/' + subjects[randint(0, 8)])
-                for line in response:
-                    line = line.decode('cp1252')
-                    if '<P CLASS="lause">' in line:
-                        line = re.sub('<.*?>', '', line)
-#                        print(line)
-                        bot.sendMessage(chat_id, line)
-                        break
+                response = urlopen('http://puppulausegeneraattori.fi/aihe/' + options[randint(1,len(options)-1)]['value'])
+                bot.sendMessage(chat_id, BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text)
             except urllib.HTTPError as e:
                 bot.sendMessage(chat_id, "Error: " + e.code)
             except:
@@ -39,16 +32,6 @@ def MessageHandle(msg):
 
 MessageLoop(bot, MessageHandle).run_as_thread()
 while True:
-   # response = urlopen('http://puppulausegeneraattori.fi/aihe/Politiikka')
-   # for line in response:
-   #      line = line.decode('cp1252')
-   #      if '<P CLASS="lause">' in line:
-   #            line = re.sub('<.*?>', '', line)
-   #            print(line)
-               #          bot.sendMessage(chat_id, line)
-   #            break
-
-    #print(urlopen("http://ip.42.pl/raw").read().decode("utf-8"))
     time.sleep(60)
 #print("Looking for changes in external IP address every 60 seconds...")
 #print("Listening for commands...")
@@ -72,4 +55,3 @@ while True:
 #        except:
 #                print("No internet connection")
 #        time.sleep(60)
-
