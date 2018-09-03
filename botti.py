@@ -49,7 +49,7 @@ while True:
    #            break
 
     #print(urlopen("http://ip.42.pl/raw").read().decode("utf-8"))
-    time.sleep(5)
+    time.sleep(60)
 #print("Looking for changes in external IP address every 60 seconds...")
 #print("Listening for commands...")
 #
