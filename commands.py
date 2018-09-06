@@ -22,7 +22,7 @@ def puppulause(cmd, options, puppuUrl):
         except HTTPError as e:
             print("HTTP Error: " + str(e))
             return
-        except Exception:
+        except:
             return
     elif cmd.startswith("/miete "):
         try:
@@ -31,34 +31,43 @@ def puppulause(cmd, options, puppuUrl):
         except HTTPError as e:
             print("HTTP Error: " + str(e))
             return
-        except Exception:
+        except:
             return
     else:
         return
     return BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text
 
-def hltv_matches():
+def matchesOfDay(soup, url, day, message=""):
+    matches = (soup.find(text=str(day)).parent.parent).findChildren('a', {'class' : 'a-reset block upcoming-match standard-box'})
+    listOfMatches = []
+    for match in matches:
+        singleMatch = []
+        time = match.find('div', {'class' : 'time'}).text
+        singleMatch.append((datetime.datetime.strptime(time, '%H:%M') + datetime.timedelta(hours=1)).strftime('%H:%M'))
+        if match.find('td', {'class' : 'placeholder-text-cell'}):
+            singleMatch.append("TBD")
+            singleMatch.append("TBD")
+            singleMatch.append(match.find('td', {'class' : 'placeholder-text-cell'}).text)
+        else:
+            for team in match.findAll('div', {'class' : 'team'}):
+                singleMatch.append(team.text)
+            singleMatch.append(match.find('span', {'class' : 'event-name'}).text)
+        singleMatch.append(match['href'])
+        listOfMatches.append(singleMatch)
+    for match in listOfMatches:
+        message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
+    return message
+
+def hltvMatches():
     url = "https://www.hltv.org"
     try:
         con = urlopen(Request(url + '/matches', headers={'User-Agent' : "Magic Browser"}))
     except HTTPError as e:
         print("HTTP Error: " + str(e))
         return
-    except Exception:
+    except:
         return
-    soup = BeautifulSoup(con, 'html.parser').find(text=str((datetime.datetime.now()).isoformat())[0:10]).parent.parent
-    matches = soup.findChildren('a', {'class' : 'a-reset block upcoming-match standard-box'})
-    a = []
-    for match in matches:
-        m = []
-        time = match.find('div', {'class' : 'time'}).text
-        m.append((datetime.datetime.strptime(time, '%H:%M') + datetime.timedelta(hours=1)).strftime('%H:%M'))
-        for team in match.findAll('div', {'class' : 'team'}):
-            m.append(team.text)
-        m.append(match.find('span', {'class' : 'event-name'}).text)
-        m.append(match['href'])
-        a.append(m)
-    message = ""
-    for match in a:
-        message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
-    return message
+    now = datetime.datetime.now()
+    soup = BeautifulSoup(con, 'html.parser')
+    message = matchesOfDay(soup, url, now.isoformat()[0:10])
+    return matchesOfDay(soup, url, (now + datetime.timedelta(days=1)).isoformat()[0:10], message)
