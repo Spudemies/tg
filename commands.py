@@ -12,8 +12,7 @@ def ip():
     except HTTPError as e:
         print("HTTP Error: " + str(e))
         return
-    except:
-        return
+    except: return
 
 def puppulause(cmd, options, puppuUrl):
     if cmd == "/miete":
@@ -22,8 +21,7 @@ def puppulause(cmd, options, puppuUrl):
         except HTTPError as e:
             print("HTTP Error: " + str(e))
             return
-        except:
-            return
+        except: return
     elif cmd.startswith("/miete "):
         try:
             params = '+'.join(quote(cmd, safe='', encoding='iso-8859-1').split('%20')[1:])
@@ -31,10 +29,8 @@ def puppulause(cmd, options, puppuUrl):
         except HTTPError as e:
             print("HTTP Error: " + str(e))
             return
-        except:
-            return
-    else:
-        return
+        except: return
+    else: return
     return BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text
 
 def fetchWhiteList():
@@ -52,6 +48,9 @@ def fetchWhiteList():
 
 def matchesOfDay(soup, url, whitelist, day, message=""):
     matches = (soup.find(text=str(day)).parent.parent).findChildren('a', {'class' : 'a-reset block upcoming-match standard-box'})
+    current = str(datetime.datetime.now().isoformat()[0:10])
+    if (current == day): dayy = "Today"
+    else: dayy = "Tomorrow"
     listOfMatches = []
     for match in matches:
         singleMatch = []
@@ -66,10 +65,11 @@ def matchesOfDay(soup, url, whitelist, day, message=""):
                 singleMatch.append(team.text)
             singleMatch.append(match.find('span', {'class' : 'event-name'}).text)
         singleMatch.append(match['href'])
-        listOfMatches.append(singleMatch)
+        listOfMatches.insert(0, singleMatch)
     for match in listOfMatches:
         if (match[1] in whitelist or match[2] in whitelist):
-            message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
+            if ((current != day) and ((int(match[0][:2]) > 11) or match[0] == "00:00")): break
+            message = "%s%s %s | %s vs %s\n[%s]\n%s%s\n\n" % (message, dayy, match[0], match[1], match[2], match[3], url, match[4])
         else: pass
     return message
 
@@ -80,9 +80,8 @@ def hltvMatches(whitelist):
     except HTTPError as e:
         print("HTTP Error: " + str(e))
         return
-    except:
-        return
+    except: return
     now = datetime.datetime.now()
     soup = BeautifulSoup(con, 'html.parser')
-    message = matchesOfDay(soup, url, whitelist, now.isoformat()[0:10])
-    return matchesOfDay(soup, url, whitelist, (now + datetime.timedelta(days=1)).isoformat()[0:10], message)
+    message = matchesOfDay(soup, url, whitelist, (now + datetime.timedelta(days=1)).isoformat()[0:10])
+    return matchesOfDay(soup, url, whitelist, now.isoformat()[0:10], message)

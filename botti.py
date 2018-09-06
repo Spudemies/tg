@@ -17,6 +17,7 @@ class TgBot:
         try:
             self.options = BeautifulSoup(urlopen("http://puppulausegeneraattori.fi/"), 'html.parser').findAll('option')
             self.whitelist = fetchWhiteList()
+            self.whitelist.append("TBD")
             while True:
                 time.sleep(60)
         except HTTPError as e:
@@ -36,11 +37,10 @@ class TgBot:
             elif cmd.startswith("/miete"):
                 message = puppulause(cmd, self.options, "http://puppulausegeneraattori.fi/")
                 if not message: return
-            elif cmd == "/hltv matches":
+            elif cmd == "/matches":
                 message = hltvMatches(self.whitelist)
                 if not message: return
-            else:
-                return
+            else: return
             try:
                 while len(message):
                     self.bot.sendMessage(chat_id, message[:4095], disable_web_page_preview=True, disable_notification=True)
