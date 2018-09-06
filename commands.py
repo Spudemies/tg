@@ -37,7 +37,20 @@ def puppulause(cmd, options, puppuUrl):
         return
     return BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text
 
-def matchesOfDay(soup, url, day, message=""):
+def fetchWhiteList():
+    url = "https://www.hltv.org/ranking/teams/"
+    try:
+        soup = BeautifulSoup(urlopen(Request(url, headers={'User-Agent' : "Magic Browser"})), 'html.parser')
+    except:
+        print("Unable to fetch hltv whitelist: " + str(e) + "\nExiting.")
+        raise SystemExit
+    children = (soup.find('div', {'class' : 'regional-ranking-header'}).parent).findChildren('div', {'class' : 'ranked-team standard-box'})
+    whitelist = []
+    for child in children:
+        whitelist.append(child.find('span', {'class' : 'name'}).text)
+    return whitelist
+
+def matchesOfDay(soup, url, whitelist, day, message=""):
     matches = (soup.find(text=str(day)).parent.parent).findChildren('a', {'class' : 'a-reset block upcoming-match standard-box'})
     listOfMatches = []
     for match in matches:
@@ -55,10 +68,12 @@ def matchesOfDay(soup, url, day, message=""):
         singleMatch.append(match['href'])
         listOfMatches.append(singleMatch)
     for match in listOfMatches:
-        message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
+        if (match[1] in whitelist or match[2] in whitelist):
+            message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
+        else: pass
     return message
 
-def hltvMatches():
+def hltvMatches(whitelist):
     url = "https://www.hltv.org"
     try:
         con = urlopen(Request(url + '/matches', headers={'User-Agent' : "Magic Browser"}))
@@ -69,5 +84,5 @@ def hltvMatches():
         return
     now = datetime.datetime.now()
     soup = BeautifulSoup(con, 'html.parser')
-    message = matchesOfDay(soup, url, now.isoformat()[0:10])
-    return matchesOfDay(soup, url, (now + datetime.timedelta(days=1)).isoformat()[0:10], message)
+    message = matchesOfDay(soup, url, whitelist, now.isoformat()[0:10])
+    return matchesOfDay(soup, url, whitelist, (now + datetime.timedelta(days=1)).isoformat()[0:10], message)

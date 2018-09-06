@@ -4,17 +4,19 @@ from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.error import HTTPError
 from telepot.loop import MessageLoop
-from commands import ip, puppulause, hltvMatches
+from commands import ip, puppulause, hltvMatches, fetchWhiteList
 
 class TgBot:
     def __init__(self):
-        self.TOKEN = "398198114:AAEqfGI8W7hutdlVvOzP7ZnAQGStFxjBnYs"
+        self.TOKEN = ""
         self.bot = telepot.Bot(self.TOKEN)
         self.options = ""
+        self.whitelist = []
 
     def run(self):
         try:
             self.options = BeautifulSoup(urlopen("http://puppulausegeneraattori.fi/"), 'html.parser').findAll('option')
+            self.whitelist = fetchWhiteList()
             while True:
                 time.sleep(60)
         except HTTPError as e:
@@ -26,12 +28,6 @@ class TgBot:
 
     def messageHandle(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
-
-        #TESTING
-        if chat_id != 127701226:
-            return
-
-
         if content_type == "text":
             cmd = msg["text"]
             if cmd == "/ip":
@@ -41,7 +37,7 @@ class TgBot:
                 message = puppulause(cmd, self.options, "http://puppulausegeneraattori.fi/")
                 if not message: return
             elif cmd == "/hltv matches":
-                message = hltvMatches()
+                message = hltvMatches(self.whitelist)
                 if not message: return
             else:
                 return
