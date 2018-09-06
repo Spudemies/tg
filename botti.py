@@ -1,8 +1,9 @@
 import telepot
-import time, re
+import time, re, datetime
 from bs4 import BeautifulSoup
 from random import randint
 from urllib.request import urlopen
+from urllib.request import Request
 from urllib.error import HTTPError
 from urllib.parse import quote
 from telepot.loop import MessageLoop
@@ -20,7 +21,7 @@ class TgBot:
             while True:
                 time.sleep(60)
         except HTTPError as e:
-            print("Unable to fetch puppu options: " + str(e) + ". Exiting.")
+            print("Unable to fetch puppu options: " + str(e) + "\nExiting.")
             raise SystemExit
         except KeyboardInterrupt:
             print("\nExiting.")
@@ -59,10 +60,28 @@ class TgBot:
                 else:
                     return
                 message = BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text
+            elif cmd == "/hltv matches":
+                url = "https://www.hltv.org"
+                con = urlopen(Request(url + '/matches', headers={'User-Agent' : "Magic Browser"}))
+                soup = BeautifulSoup(con, 'html.parser').find(text=str((datetime.datetime.now()).isoformat())[0:10]).parent.parent
+                matches = soup.findChildren('a', {'class' : 'a-reset block upcoming-match standard-box'})
+                a = []
+                for match in matches:
+                    m = []
+                    time = match.find('div', {'class' : 'time'}).text
+                    m.append((datetime.datetime.strptime(time, '%H:%M') + datetime.timedelta(hours=1)).strftime('%H:%M'))
+                    for team in match.findAll('div', {'class' : 'team'}):
+                        m.append(team.text)
+                    m.append(match.find('span', {'class' : 'event-name'}).text)
+                    m.append(match['href'])
+                    a.append(m)
+                message = ""
+                for match in a:
+                    message = "%s%s | %s vs %s\n[%s]\n%s%s\n\n" % (message, match[0], match[1], match[2], match[3], url, match[4])
             else:
                 return
             try:
-                self.bot.sendMessage(chat_id, message)
+                self.bot.sendMessage(chat_id, message, disable_web_page_preview=True, disable_notification=True)
             except Exception as e:
                 print("Failed sending message to chat: " + str(chat_id) + "\nReason: " + str(e))
                 return
