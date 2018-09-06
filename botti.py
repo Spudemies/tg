@@ -7,45 +7,66 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from telepot.loop import MessageLoop
 
-TOKEN = ""
-bot = telepot.Bot(TOKEN)
+class TgBot:
+    def __init__(self):
+        self.TOKEN = ""
+        self.bot = telepot.Bot(self.TOKEN)
+        self.options = ""
+        self.puppuUrl = "http://puppulausegeneraattori.fi/"
 
-def run():
-    try:
-        while True:
-            time.sleep(60)
-    except KeyboardInterrupt:
-        raise SystemExit
+    def run(self):
+        try:
+            self.options = BeautifulSoup(urlopen(self.puppuUrl), 'html.parser').findAll('option')
+            while True:
+                time.sleep(60)
+        except HTTPError as e:
+            print("Unable to fetch puppu options: " + str(e) + ". Exiting.")
+            raise SystemExit
+        except KeyboardInterrupt:
+            print("\nExiting.")
+            raise SystemExit
 
-def MessageHandle(msg):
-    content_type, chat_type, chat_id = telepot.glance(msg)
-    if content_type == "text":
-        txt = msg["text"]
-        if txt == "/ip":
+    def messageHandle(self, msg):
+        content_type, chat_type, chat_id = telepot.glance(msg)
+        if content_type == "text":
+            cmd = msg["text"]
+            if cmd == "/ip":
+                try:
+                    message = "Current IP: " + urlopen("http://ip.42.pl/raw").read().decode("utf-8")
+                except HTTPError as e:
+                    print("HTTP Error: " + str(e))
+                    return
+                except:
+                    return
+            elif cmd.startswith("/miete"):
+                if cmd == "/miete":
+                    try:
+                        response = urlopen(self.puppuUrl + 'aihe/' + self.options[randint(1,len(self.options)-1)]['value'])
+                    except HTTPError as e:
+                        print("HTTP Error: " + str(e))
+                        return
+                    except Exception:
+                        return
+                elif cmd.startswith("/miete "):
+                    try:
+                        params = '+'.join(quote(cmd, safe='', encoding='iso-8859-1').split('%20')[1:])
+                        response = urlopen(self.puppuUrl + '?avainsana=' + params)
+                    except HTTPError as e:
+                        print("HTTP Error: " + str(e))
+                        return
+                    except Exception:
+                        return
+                else:
+                    return
+                message = BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text
+            else:
+                return
             try:
-                bot.sendMessage(chat_id, "Current IP: " + urlopen("http://ip.42.pl/raw").read().decode("utf-8"))
-            except HTTPError as e:
-                print("HTTP Error: " + e)
-            except:
-                pass
-        elif txt == "/miete":
-            try:
-                options = BeautifulSoup(urlopen('http://puppulausegeneraattori.fi/'), 'html.parser').findAll('option')
-                response = urlopen('http://puppulausegeneraattori.fi/aihe/' + options[randint(1,len(options)-1)]['value'])
-                bot.sendMessage(chat_id, BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text)
-            except HTTPError as e:
-                print("HTTP Error: " + e)
-            except:
-                pass
-        elif txt.startswith("/miete "):
-            try:
-                params = '+'.join(quote(txt, safe='', encoding='iso-8859-1').split('%20')[1:])
-                response = urlopen('http://puppulausegeneraattori.fi/?avainsana=' + params)
-                bot.sendMessage(chat_id, BeautifulSoup(response, 'html.parser').find('p', {'class' : 'lause'}).text)
-            except HTTPError as e:
-                print("HTTP Error: " + e)
-            except:
-                pass
+                self.bot.sendMessage(chat_id, message)
+            except Exception as e:
+                print("Failed sending message to chat: " + str(chat_id) + "\nReason: " + str(e))
+                return
 
-MessageLoop(bot, MessageHandle).run_as_thread()
-run()
+tgBot = TgBot()
+MessageLoop(tgBot.bot, tgBot.messageHandle).run_as_thread()
+tgBot.run()
